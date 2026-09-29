@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Face Attendance System</title>
+<style>
+:root{--bg:#0b0b0d;--tx:#f5f5f7;--mut:rgba(245,245,247,.55);--glass:rgba(255,255,255,.06);--glass2:rgba(255,255,255,.12);--line:rgba(255,255,255,.16);--solid:#f5f5f7;--onsolid:#0b0b0d;--shadow:rgba(0,0,0,.45);--orb:rgba(255,255,255,.10);--r:22px}
+:root[data-theme=light]{--bg:#f4f4f6;--tx:#111114;--mut:rgba(17,17,20,.55);--glass:rgba(255,255,255,.55);--glass2:rgba(255,255,255,.85);--line:rgba(0,0,0,.10);--solid:#111114;--onsolid:#fafafa;--shadow:rgba(0,0,0,.10);--orb:rgba(0,0,0,.05)}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--tx);font-family:'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif;letter-spacing:.01em;
+ background:radial-gradient(50% 40% at 15% 5%,var(--orb),transparent 70%),radial-gradient(45% 40% at 90% 90%,var(--orb),transparent 70%),var(--bg);background-attachment:fixed;transition:background .3s,color .3s}
+header{text-align:center;padding:44px 20px 10px;position:relative}
+header h1{margin:0;font-size:1.6rem;font-weight:300;letter-spacing:.2em;text-transform:uppercase}
+header small{display:block;margin-top:8px;color:var(--mut);font-size:.8rem}
+#theme{position:absolute;top:18px;right:20px;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--tx);cursor:pointer;font-size:1rem;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+nav{display:flex;justify-content:center;gap:4px;width:max-content;max-width:calc(100% - 32px);margin:22px auto;padding:5px;background:var(--glass);border:1px solid var(--line);border-radius:999px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+nav button{background:transparent;border:0;color:var(--mut);padding:9px 22px;border-radius:999px;cursor:pointer;font:inherit;font-size:.88rem;transition:.25s}
+nav button:hover{color:var(--tx)}
+nav button.on{background:var(--solid);color:var(--onsolid)}
+main{max-width:980px;margin:0 auto;padding:0 20px 60px}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);padding:26px;margin-bottom:20px;backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);box-shadow:0 20px 50px var(--shadow)}
+.card h2{margin:0 0 16px;font-size:.85rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--mut)}
+#status{padding:12px 20px;text-align:center;font-size:.85rem;color:var(--mut);border-radius:999px}
+.cam{position:relative;width:100%;max-width:640px;aspect-ratio:4/3;margin:0 auto;background:#000;border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:0 12px 40px var(--shadow)}
+.cam video,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:16px 0}
+input{background:var(--glass);border:1px solid var(--line);color:var(--tx);padding:10px 16px;border-radius:999px;font:inherit;font-size:.9rem;outline:0;transition:.25s}
+input:focus{border-color:var(--tx)}
+:root:not([data-theme=light]) input[type=date]{color-scheme:dark}
+.b{background:var(--solid);color:var(--onsolid);border:0;padding:10px 20px;border-radius:999px;cursor:pointer;font:inherit;font-size:.86rem;font-weight:500;transition:.25s}
+.b:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 22px var(--shadow)}
+.b.g,.b.w,.b.r{background:var(--glass);color:var(--tx);border:1px solid var(--line);backdrop-filter:blur(10px)}
+.b.g:hover:not(:disabled),.b.w:hover:not(:disabled),.b.r:hover:not(:disabled){background:var(--glass2)}
+.b.r{border-style:dashed}
+.b:disabled{opacity:.3;cursor:not-allowed}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:.88rem}
+th,td{padding:12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mut);font-weight:500;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+tbody tr:hover{background:var(--glass)}
+td .b{padding:6px 12px;font-size:.75rem}
+.wrap{overflow-x:auto}
+.tag{padding:3px 12px;border-radius:999px;font-size:.72rem;border:1px solid var(--line)}
+.tag.present{background:var(--solid);color:var(--onsolid);border-color:var(--solid)}
+.tag.absent{border-style:dashed;color:var(--tx);text-decoration:line-through}
+.tag.none{color:var(--mut)}
+#msg{min-height:22px;color:var(--mut);margin:6px 0;text-align:center;font-size:.86rem}
+small{display:block;text-align:center}
+#win{color:var(--mut);font-size:.82rem}
+#log{max-height:170px;overflow:auto;font-size:.82rem;color:var(--mut);margin-top:8px}
+#log div{padding:7px 4px;border-bottom:1px solid var(--line)}
+.ok{color:var(--tx);font-weight:500}.err{color:var(--mut);text-decoration:underline}
+.hide{display:none}
+::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+@media(max-width:560px){header h1{font-size:1.15rem}.card{padding:18px}nav button{padding:8px 14px}}
+</style>
+</head>
+<body>
+<header><button id="theme" title="Toggle light / dark">◐</button><h1>Face Attendance</h1><small>Quiet, private, runs in your browser</small></header>
+<nav id="nav">
+  <button data-t="scan" class="on">Attendance</button>
+  <button data-t="reg">Register</button>
+  <button data-t="rec">Records</button>
+</nav>
+<main>
+  <div id="status" class="card">Loading face models…</div>
+
+  <section id="scan">
+    <div class="card"><h2>Scan faces</h2>
+      <div class="cam"><video id="v1" autoplay muted playsinline></video><canvas id="c1"></canvas></div>
+      <div class="row"><button class="b" id="startScan">Start camera</button><button class="b g" id="stopScan" disabled>Stop</button>
+        <span id="win" style="color:var(--mut)"></span></div>
+      <div id="log"></div>
+    </div>
+  </section>
+
+  <section id="reg" class="hide">
+    <div class="card"><h2>Register a person</h2>
+      <div class="cam"><video id="v2" autoplay muted playsinline></video><canvas id="c2"></canvas></div>
+      <div class="row">
+        <input id="name" placeholder="Full name">
+        <button class="b g" id="startReg">Start camera</button>
+        <button class="b" id="snap" disabled>Capture sample (<span id="cnt">0</span>/5)</button>
+        <button class="b w" id="save" disabled>Save person</button>
+      </div>
+      <div id="msg"></div>
+      <small style="color:var(--mut)">Capture 3–5 samples with slightly different angles. One face only in frame.</small>
+    </div>
+  </section>
+
+  <section id="rec" class="hide">
+    <div class="card"><h2>Daily records</h2>
+      <div class="row"><input type="date" id="date"><button class="b" id="load">View</button>
+        <button class="b g" id="csv">Export CSV</button>
+        <button class="b g" id="bak">Backup JSON</button>
+        <label class="b g" style="margin:0">Restore<input type="file" id="res" accept=".json" hidden></label></div>
+      <div class="wrap"><table><thead><tr><th>Name</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tb"></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<script>
+const MODELS='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+const THRESH=0.5;                         // lower = stricter matching
+// Same windows as the original app.py (edit freely)
+const WINDOWS=[['morning_in','08:00','10:00'],['morning_out','11:30','13:00'],['afternoon_in','13:00','15:00'],['afternoon_out','16:30','18:00']];
+const $=id=>document.getElementById(id);
+const KEY='faceAttendance.v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"users":[],"attendance":[],"absent":[]}');
+const persist=()=>localStorage.setItem(KEY,JSON.stringify(db));
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const nowT=()=>new Date().toTimeString().slice(0,8);
+const curStatus=()=>{const t=nowT().slice(0,5);const w=WINDOWS.find(w=>t>=w[1]&&t<=w[2]);return w?w[0]:null};
+const opts=()=>new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.5});
+let ready=false,stream=null,timer=null,samples=[];
+
+async function init(){
+  try{
+    await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(MODELS),faceapi.nets.faceLandmark68Net.loadFromUri(MODELS),faceapi.nets.faceRecognitionNet.loadFromUri(MODELS)]);
+    ready=true;$('status').textContent='Models loaded. '+db.users.length+' registered person(s).';
+  }catch(e){$('status').innerHTML='<span class="err">Could not load face models. Check your internet connection.</span>'}
+  $('date').value=today();loadRecords();
+}
+function showErr(m){$('status').innerHTML='<span class="err">'+m+'</span>';log&&log(m,'err');if($('msg'))$('msg').textContent=m}
+async function cam(v){
+  if(!window.isSecureContext)throw new Error('Camera needs HTTPS or http://localhost. You opened this file directly (file://). Run a local server or deploy to Vercel.');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('This browser does not support camera access. Try Chrome, Edge or Safari.');
+  if(stream)stop();
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}})}
+  catch(e){
+    const n=e.name;
+    throw new Error(n==='NotAllowedError'?'Camera permission was blocked. Click the camera/lock icon in the address bar, allow the camera, then reload.':
+      n==='NotFoundError'?'No camera found on this device.':
+      n==='NotReadableError'?'Camera is being used by another app or tab. Close it and try again.':'Camera error: '+(e.message||n));
+  }
+  v.srcObject=stream;await v.play();
+}
+function stop(){clearInterval(timer);timer=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+function overlay(v,c,dets,labels){
+  c.width=v.videoWidth;c.height=v.videoHeight;const g=c.getContext('2d');g.clearRect(0,0,c.width,c.height);
+  dets.forEach((d,i)=>{const b=d.detection.box;g.strokeStyle=labels&&labels[i]!=='unknown'?'#fff':'rgba(255,255,255,.5)';g.lineWidth=2;g.strokeRect(b.x,b.y,b.width,b.height);
+    if(labels){g.fillStyle='#fff';g.font='18px sans-serif';g.fillText(labels[i],b.x,b.y+b.height+20)}});
+}
+function log(m,cls){const d=document.createElement('div');d.className=cls||'';d.textContent=new Date().toLocaleTimeString()+'  '+m;$('log').prepend(d)}
+
+/* ---------- Tabs ---------- */
+$('nav').onclick=e=>{const t=e.target.dataset.t;if(!t)return;stop();
+  ['scan','reg','rec'].forEach(s=>$(s).classList.toggle('hide',s!==t));
+  [...$('nav').children].forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  $('startScan').disabled=false;$('stopScan').disabled=true;if(t==='rec')loadRecords()};
+
+/* ---------- Attendance scan (attendance_taker.py) ---------- */
+$('startScan').onclick=async()=>{
+  if(!ready){showErr('Face models are still loading or failed to load. Check your internet and reload.');return}
+  if(!db.users.length){showErr('No registered people yet. Register someone first.');return}
+  try{await cam($('v1'))}catch(e){showErr(e.message);return}
+  $('startScan').disabled=true;$('stopScan').disabled=false;
+  const matcher=new faceapi.FaceMatcher(db.users.map(u=>new faceapi.LabeledFaceDescriptors(u.name,[new Float32Array(u.mean)])),THRESH);
+  timer=setInterval(async()=>{
+    const v=$('v1');if(!v.videoWidth)return;
+    const dets=await faceapi.detectAllFaces(v,opts()).withFaceLandmarks().withFaceDescriptors();
+    const labels=dets.map(d=>matcher.findBestMatch(d.descriptor).label);
+    overlay(v,$('c1'),dets,labels);labels.forEach(n=>{if(n!=='unknown')mark(n)});
+    const s=curStatus();$('win').textContent=s?'Current window: '+s.replace('_',' '):'Outside allowed time windows';
+  },600);
+};
+$('stopScan').onclick=()=>{stop();$('startScan').disabled=false;$('stopScan').disabled=true};
+function mark(name){
+  const s=curStatus(),d=today();if(!s)return;
+  if(db.attendance.some(a=>a.name===name&&a.date===d&&a.status===s))return;
+  db.absent=db.absent.filter(a=>!(a.name===name&&a.date===d));
+  db.attendance.push({name,date:d,time:nowT(),status:s});persist();
+  log(name+' marked '+s.replace('_',' ')+' at '+nowT(),'ok');
+}
+
+/* ---------- Register (get_faces + features_extraction) ---------- */
+$('startReg').onclick=async()=>{
+  if(!ready){showErr('Face models are still loading or failed to load. Check your internet and reload.');return}
+  try{await cam($('v2'))}catch(e){showErr(e.message);return}
+  $('snap').disabled=false;
+  timer=setInterval(async()=>{const v=$('v2');if(!v.videoWidth)return;
+    overlay(v,$('c2'),await faceapi.detectAllFaces(v,opts()))},400)};
+$('snap').onclick=async()=>{
+  const dets=await faceapi.detectAllFaces($('v2'),opts()).withFaceLandmarks().withFaceDescriptors();
+  if(dets.length!==1){$('msg').textContent=dets.length?'Only one face allowed in frame.':'No face detected.';return}
+  samples.push(Array.from(dets[0].descriptor));$('cnt').textContent=samples.length;
+  $('msg').textContent='Sample '+samples.length+' captured.';$('save').disabled=samples.length<3;
+  if(samples.length>=5)$('snap').disabled=true;
+};
+$('save').onclick=()=>{
+  const name=$('name').value.trim();
+  if(!name){$('msg').textContent='Enter a name first.';return}
+  if(db.users.some(u=>u.name.toLowerCase()===name.toLowerCase())){$('msg').textContent='That name already exists.';return}
+  const mean=samples[0].map((_,i)=>samples.reduce((s,x)=>s+x[i],0)/samples.length);   // mean 128D vector
+  db.users.push({name,mean});persist();samples=[];$('cnt').textContent=0;$('name').value='';
+  $('save').disabled=true;$('snap').disabled=false;$('msg').innerHTML='<span class="ok">'+name+' registered.</span>';
+  $('status').textContent=db.users.length+' registered person(s).';
+};
+
+/* ---------- Records (index.html + app.py) ---------- */
+function loadRecords(){
+  const d=$('date').value||today(),tb=$('tb');tb.innerHTML='';
+  const names=[...new Set([...db.users.map(u=>u.name),...db.attendance.filter(a=>a.date===d).map(a=>a.name)])].sort();
+  if(!names.length){tb.innerHTML='<tr><td colspan="7" style="color:var(--mut)">No people registered yet.</td></tr>';return}
+  names.forEach(n=>{
+    const rec=Object.fromEntries(db.attendance.filter(a=>a.name===n&&a.date===d).map(a=>[a.status,a.time]));
+    const abs=db.absent.some(a=>a.name===n&&a.date===d),has=Object.keys(rec).length>0;
+    const cell=k=>rec[k]||(abs?'Absent':'—');
+    const st=abs?'<span class="tag absent">Absent</span>':has?'<span class="tag present">Present</span>':'<span class="tag none">No record</span>';
+    const act=abs?`<button class="b g" data-a="unabs" data-n="${n}">Remove absent</button>`:has?'':`<button class="b w" data-a="abs" data-n="${n}">Mark absent</button>`;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${n}</td><td>${cell('morning_in')}</td><td>${cell('morning_out')}</td><td>${cell('afternoon_in')}</td><td>${cell('afternoon_out')}</td><td>${st}</td><td>${act} <button class="b r" data-a="del" data-n="${n}">Delete user</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+$('load').onclick=loadRecords;
+$('tb').onclick=e=>{const a=e.target.dataset.a,n=e.target.dataset.n,d=$('date').value;if(!a)return;
+  if(a==='abs')db.absent.push({name:n,date:d});
+  if(a==='unabs')db.absent=db.absent.filter(x=>!(x.name===n&&x.date===d));
+  if(a==='del'){if(!confirm('Delete '+n+' and all their records?'))return;
+    db.users=db.users.filter(u=>u.name!==n);db.attendance=db.attendance.filter(x=>x.name!==n);db.absent=db.absent.filter(x=>x.name!==n)}
+  persist();loadRecords();$('status').textContent=db.users.length+' registered person(s).'};
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
+$('csv').onclick=()=>{const rows=[['name','date','time','status'],...db.attendance.map(a=>[a.name,a.date,a.time,a.status])];
+  dl('attendance.csv',rows.map(r=>r.map(x=>'"'+x+'"').join(',')).join('\n'),'text/csv')};
+$('bak').onclick=()=>dl('attendance-backup.json',JSON.stringify(db),'application/json');
+$('res').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());
+  if(!j.users||!j.attendance)throw 0;db={users:j.users,attendance:j.attendance,absent:j.absent||[]};persist();loadRecords();alert('Restored.')}catch{alert('Invalid backup file.')}};
+
+/* ---------- Theme ---------- */
+(()=>{let t;try{t=localStorage.getItem('theme')}catch{}
+ if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+ const set=v=>{document.documentElement.dataset.theme=v;try{localStorage.setItem('theme',v)}catch{}};
+ set(t);$('theme').onclick=()=>set(document.documentElement.dataset.theme==='light'?'dark':'light')})();
+
+init();
+</script>
+</body>
+</html>
