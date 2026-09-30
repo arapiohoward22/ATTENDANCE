@@ -62,6 +62,8 @@ small{display:block;text-align:center}
   <button data-t="scan" class="on">Attendance</button>
   <button data-t="reg">Register</button>
   <button data-t="rec">Records</button>
+  <button data-t="set">Settings</button>
+  <button id="logout" class="hide">Log out</button>
 </nav>
 <main>
   <div id="status" class="card">Loading face models…</div>
@@ -98,6 +100,28 @@ small{display:block;text-align:center}
       <div class="wrap"><table><thead><tr><th>Name</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tb"></tbody></table></div>
     </div>
   </section>
+
+  <section id="login" class="hide"><div class="card" style="max-width:420px;margin:0 auto">
+    <h2 id="lt">Admin login</h2>
+    <div class="row" style="flex-direction:column">
+      <input id="pw" type="password" placeholder="Password" style="width:100%" autocomplete="current-password">
+      <input id="pw2" type="password" placeholder="Confirm password" style="width:100%" class="hide" autocomplete="new-password">
+      <button class="b" id="loginBtn" style="width:100%">Continue</button>
+    </div>
+    <div id="lmsg" style="text-align:center;color:var(--mut);font-size:.86rem;min-height:20px"></div>
+    <small style="margin-top:8px"><a href="#" id="forgot" style="color:var(--mut)">Forgot password?</a></small>
+  </div></section>
+
+  <section id="set" class="hide"><div class="card" style="max-width:420px;margin:0 auto">
+    <h2>Change password</h2>
+    <div class="row" style="flex-direction:column">
+      <input id="cp" type="password" placeholder="Current password" style="width:100%" autocomplete="current-password">
+      <input id="np" type="password" placeholder="New password (min 6 characters)" style="width:100%" autocomplete="new-password">
+      <input id="np2" type="password" placeholder="Confirm new password" style="width:100%" autocomplete="new-password">
+      <button class="b" id="chg" style="width:100%">Update password</button>
+    </div>
+    <div id="smsg" style="text-align:center;color:var(--mut);font-size:.86rem;min-height:20px"></div>
+  </div></section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
@@ -146,10 +170,45 @@ function overlay(v,c,dets,labels){
 function log(m,cls){const d=document.createElement('div');d.className=cls||'';d.textContent=new Date().toLocaleTimeString()+'  '+m;$('log').prepend(d)}
 
 /* ---------- Tabs ---------- */
-$('nav').onclick=e=>{const t=e.target.dataset.t;if(!t)return;stop();
-  ['scan','reg','rec'].forEach(s=>$(s).classList.toggle('hide',s!==t));
-  [...$('nav').children].forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  $('startScan').disabled=false;$('stopScan').disabled=true;if(t==='rec')loadRecords()};
+let want='rec';
+function show(t){stop();
+  if(t!=='scan'&&!admin){want=t;t='login';loginUI()}
+  ['scan','reg','rec','set','login'].forEach(x=>$(x).classList.toggle('hide',x!==t));
+  $('nav').querySelectorAll('[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===(t==='login'?want:t)));
+  $('startScan').disabled=false;$('stopScan').disabled=true;if(t==='rec')loadRecords()}
+$('nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.id==='logout'){admin=false;sessionStorage.removeItem('adm');updNav();show('scan');return}
+  if(b.dataset.t)show(b.dataset.t)};
+
+/* ---------- Admin login ---------- */
+const AK='faceAttendance.admin',enc=new TextEncoder();
+let admin=sessionStorage.getItem('adm')==='1';
+const getA=()=>{try{return JSON.parse(localStorage.getItem(AK))}catch{return null}};
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function hash(p,salt){const k=await crypto.subtle.importKey('raw',enc.encode(p),'PBKDF2',false,['deriveBits']);
+  return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations:150000,hash:'SHA-256'},k,256))}
+async function saveAdmin(p){const salt=[...crypto.getRandomValues(new Uint8Array(16))].join('-');
+  localStorage.setItem(AK,JSON.stringify({salt,h:await hash(p,salt)}))}
+const say=(id,m)=>$(id).textContent=m;
+function updNav(){$('logout').classList.toggle('hide',!admin)}
+function loginUI(){const first=!getA();$('lt').textContent=first?'Create admin password':'Admin login';
+  $('pw2').classList.toggle('hide',!first);$('forgot').classList.toggle('hide',first);say('lmsg',first?'First time: choose a password (min 6 characters).':'')}
+$('loginBtn').onclick=async()=>{
+  if(!window.crypto||!crypto.subtle){say('lmsg','Login needs HTTPS or localhost.');return}
+  const a=getA(),p=$('pw').value;
+  if(!a){if(p.length<6)return say('lmsg','Use at least 6 characters.');
+    if(p!==$('pw2').value)return say('lmsg','Passwords do not match.');await saveAdmin(p)}
+  else if(await hash(p,a.salt)!==a.h)return say('lmsg','Incorrect password.');
+  admin=true;sessionStorage.setItem('adm','1');$('pw').value=$('pw2').value='';say('lmsg','');updNav();show(want)};
+['pw','pw2'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()}));
+$('forgot').onclick=e=>{e.preventDefault();
+  alert('This app stores the password only in this browser.\n\nTo reset it: (1) if you can, log in on another tab and download a backup; (2) open browser DevTools > Application > Local Storage, delete the key "faceAttendance.admin", and reload. Registered people and records are kept.')};
+$('chg').onclick=async()=>{const a=getA(),n=$('np').value;
+  if(await hash($('cp').value,a.salt)!==a.h)return say('smsg','Current password is incorrect.');
+  if(n.length<6)return say('smsg','New password must be at least 6 characters.');
+  if(n!==$('np2').value)return say('smsg','New passwords do not match.');
+  await saveAdmin(n);$('cp').value=$('np').value=$('np2').value='';say('smsg','Password updated.')};
+updNav();
 
 /* ---------- Attendance scan (attendance_taker.py) ---------- */
 $('startScan').onclick=async()=>{
